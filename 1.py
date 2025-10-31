@@ -35,22 +35,19 @@ print("\n📦 토크나이저 로드:")
 tokenizer = AutoTokenizer.from_pretrained("bigcode/starcoderbase-1b")
 print(f"  ✓ StarCoder 토크나이저 로드 완료")
 
-# 3. 데이터셋 로드 및 필터링 (스트리밍으로 빠르게)
-print("\n📥 데이터셋 로드 (C/C++ 만, 스트리밍):")
-print("  - 스트리밍 모드로 필요한 것만 받기...")
+# 3. 데이터셋 로드 (스트리밍)
+print("\n📥 데이터셋 로드 (스트리밍):")
+print("  - 처음 5개 샘플 수집 중...")
 
 ds = load_dataset('llvm-ml/ComPile', split='train', streaming=True)
 
-ds = ds.filter(lambda x: x['language'] in ['C', 'C++'])
-
 # 4. 5개 샘플만 가져오기
-print(f"  ✓ 처음 5개 C/C++ 샘플 수집 중...")
 ds_sample = []
 for i, row in enumerate(ds):
     if i >= 5:
         break
     ds_sample.append(row)
-    print(f"    - 샘플 {i+1} 수집 완료")
+    print(f"    - 샘플 {i+1}: {row['language']}")
 
 print(f"  ✓ 테스트용 {len(ds_sample)}개 샘플 준비 완료")
 

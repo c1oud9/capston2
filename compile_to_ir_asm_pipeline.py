@@ -18,21 +18,22 @@ from datasets import load_dataset
 from transformers import AutoTokenizer
 
 # ===== 설정 =====
-TARGET_TOKENS = 10_000_000  # 0.01B (10M) 토큰 목표 - 테스트용
+TARGET_TOKENS_PER_BATCH = 1_000_000_000  # 1B 토큰 목표 (배치당)
 OUTPUT_DIR = Path("./ir_asm_dataset")
 CHECKPOINT_FILE = "checkpoint.json"
 
-# 사용할 언어 (C/C++만)
-LANGUAGES = ['C', 'C++']
+# 배치 설정 (20개 배치로 나눔, 매 배치마다 5% 데이터)
+NUM_BATCHES = 20
+CURRENT_BATCH = 0  # 0~19 (환경 변수나 스크립트 인자로 받을 수 있음)
+
+# 사용할 언어 (모든 언어)
+LANGUAGES = ['C', 'C++', 'Julia', 'Rust', 'Swift']
 
 # Clang 경로
 CLANG_PATH = "clang"  # Windows: 전체 경로 지정 필요할 수 있음
 
-# ===== 로컬 캐싱 설정 (중요!) =====
-# 스트리밍 대신 작은 샘플을 로컬에 다운로드하여 빠르게 처리
-USE_LOCAL_CACHE = True  # True면 로컬 다운로드, False면 스트리밍
-DATASET_PERCENT = 0.01  # 전체의 0.01% 다운로드 (약 60MB)
-                         # C/C++만 필터링하면 훨씬 더 작음
+# ===== 로컬 캐싱 설정 =====
+USE_LOCAL_CACHE = True
 
 
 class ComPileToIRASMPipeline:
@@ -209,8 +210,9 @@ class ComPileToIRASMPipeline:
     def run(self):
         """메인 파이프라인 실행"""
         print("=" * 70)
-        print("ComPile 기반 IR/Assembly 데이터셋 생성 (최적화 버전)")
-        print(f"목표: {TARGET_TOKENS:,} 토큰 (StarCoder 토크나이저)")
+        print("ComPile 기반 IR/Assembly 데이터셋 생성 (배치 모드)")
+        print(f"배치: {CURRENT_BATCH + 1}/{NUM_BATCHES}")
+        print(f"목표: {TARGET_TOKENS_PER_BATCH:,} 토큰 (StarCoder 토크나이저)")
         print("=" * 70)
         
         # Clang 체크
@@ -238,40 +240,30 @@ class ComPileToIRASMPipeline:
         print("\n📥 ComPile 데이터셋 로드 중...")
         
         if USE_LOCAL_CACHE:
-            # 옵션 1: 로컬에 작은 샘플 다운로드 (추천)
-            print(f"  - 방식: 로컬 다운로드 ({DATASET_PERCENT*100}%)")
-            print(f"  - 약 {600 * DATASET_PERCENT*100:.0f}MB 다운로드 예상")
+            # 배치 기반 데이터 로드
+            batch_start = CURRENT_BATCH * (100 // NUM_BATCHES)
+            batch_end = (CURRENT_BATCH + 1) * (100 // NUM_BATCHES)
+            
+            print(f"  - 배치: {CURRENT_BATCH + 1}/{NUM_BATCHES}")
+            print(f"  - 범위: {batch_start}% ~ {batch_end}%")
+            print(f"  - 목표 토큰: {TARGET_TOKENS_PER_BATCH:,} (1B)")
             print("  ⏳ 첫 로드는 시간이 걸릴 수 있습니다 (다음부터는 캐시 사용)...\n")
             
-            # 전체 데이터셋 로드
-            print("  → 전체 데이터셋 로드 중...")
-            ds = load_dataset('llvm-ml/ComPile', split='train')
+            # 배치 범위의 데이터셋 로드
+            print(f"  → 데이터셋 로드 중 ({batch_start}%:{batch_end}%)...")
+            ds = load_dataset('llvm-ml/ComPile', split=f'train[{batch_start}%:{batch_end}%]')
             print(f"  ✓ 로드 완료: {len(ds):,}개 파일")
-            
-            # C/C++만 필터링
-            print(f"🔍 필터링: {', '.join(LANGUAGES)}")
-            ds = ds.filter(lambda x: x['language'] in LANGUAGES)
-            print(f"✓ 필터링 완료 ({len(ds):,}개 파일)\n")
-            
-            # 명시적으로 샘플 선택
-            print(f"📊 {DATASET_PERCENT*100}% 샘플링 중...")
-            sample_size = max(1, int(len(ds) * DATASET_PERCENT))
-            ds = ds.select(range(sample_size))
-            print(f"✓ {sample_size:,}개 파일 선택됨\n")
+            print(f"🔍 모든 언어 포함: {', '.join(LANGUAGES)}\n")
         else:
             # 옵션 2: 스트리밍 (느림, 비추천)
             print(f"  - 방식: 스트리밍")
             print("  ⚠️  이 방식은 느리니 USE_LOCAL_CACHE=True 추천\n")
             
             ds = load_dataset('llvm-ml/ComPile', split='train', streaming=True)
-            
-            # C/C++만 필터링
-            print(f"🔍 필터링: {', '.join(LANGUAGES)}")
-            ds = ds.filter(lambda x: x['language'] in LANGUAGES)
-            print(f"✓ 필터링 완료\n")
+            print(f"✓ 모든 언어 포함\n")
         
         # 진행률 바
-        pbar = tqdm(total=TARGET_TOKENS, unit='tokens', 
+        pbar = tqdm(total=TARGET_TOKENS_PER_BATCH, unit='tokens', 
                    desc="진행", unit_scale=True)
         pbar.update(self.stats['total_tokens'])
         
@@ -279,7 +271,7 @@ class ComPileToIRASMPipeline:
         print("🚀 처리 시작...\n")
         
         for row in ds:
-            if self.stats['total_tokens'] >= TARGET_TOKENS:
+            if self.stats['total_tokens'] >= TARGET_TOKENS_PER_BATCH:
                 print("\n✅ 목표 토큰 도달!")
                 break
             
