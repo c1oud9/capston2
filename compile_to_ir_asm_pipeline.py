@@ -17,6 +17,13 @@ from tqdm import tqdm
 from datasets import load_dataset
 from transformers import AutoTokenizer
 
+
+os.environ['HF_HOME'] = '/Volumes/My\ Passport\ for\ Mac/cache'
+
+os.environ['HF_HOME'] = '/Volumes/My Passport for Mac/cache'
+os.environ['HF_DATASETS_CACHE'] = '/Volumes/My Passport for Mac/cache/datasets'
+os.environ['TRANSFORMERS_CACHE'] = '/Volumes/My Passport for Mac/cache/models'
+
 # ===== 설정 =====
 TARGET_TOKENS_PER_BATCH = 1_000_000_000  # 1B 토큰 목표 (배치당)
 OUTPUT_DIR = Path("./ir_asm_dataset")
