@@ -24,7 +24,6 @@ OUTPUT_DIR = Path("/Volumes/My Passport for Mac/ir_asm_dataset")
 
 # ===== 설정 =====
 TARGET_TOKENS_PER_BATCH = 1_000_000_000  # 1B 토큰 목표 (배치당)
-OUTPUT_DIR = Path("./ir_asm_dataset")
 CHECKPOINT_FILE = "checkpoint.json"
 
 # 배치 설정 (20개 배치로 나눔, 매 배치마다 5% 데이터)
