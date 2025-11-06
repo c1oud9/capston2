@@ -4,6 +4,7 @@ ComPile 데이터셋의 단일 parquet 파일 테스트
 """
 
 import os
+import sys
 import json
 import subprocess
 import tempfile
@@ -11,12 +12,11 @@ import pandas as pd
 from pathlib import Path
 from transformers import AutoTokenizer
 from tqdm import tqdm
-import sys
 
 # 환경 설정
 os.environ['HF_HOME'] = '/Volumes/My Passport for Mac/cache/huggingface'
-
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+
 # 설정
 PARQUET_DIR = Path("/Volumes/My Passport for Mac/cache/huggingface/hub/datasets--llvm-ml--ComPile/blobs")
 OUTPUT_DIR = Path("./test_single_parquet_output")
@@ -31,12 +31,11 @@ ASM_DIR.mkdir(exist_ok=True)
 
 
 class SingleParquetProcessor:
-    def __init__(self):
+    def __init__(self, parquet_index=0):
         self.ir_dir = IR_DIR
         self.asm_dir = ASM_DIR
         self.metadata_file = OUTPUT_DIR / "metadata.jsonl"
-
-        self.parquet_index = int(sys.argv[1]) if len(sys.argv) > 1 else 0
+        self.parquet_index = parquet_index
         
         print("📦 StarCoder 토크나이저 로딩...")
         self.tokenizer = AutoTokenizer.from_pretrained("bigcode/starcoderbase-1b")
@@ -71,47 +70,41 @@ class SingleParquetProcessor:
             return None
     
     def ir_to_assembly(self, ir_text, debug=False):
+        """IR → Assembly"""
         try:
             with tempfile.NamedTemporaryFile(mode='w', suffix='.ll', 
                                             delete=False, encoding='utf-8') as f:
                 f.write(ir_text)
                 ir_file = f.name
-
+            
             asm_file = ir_file.replace('.ll', '.s')
-
+            
             if debug:
                 print(f"\n🔍 Debug Info:")
                 print(f"   IR file: {ir_file}")
                 print(f"   ASM file: {asm_file}")
                 print(f"   IR exists: {Path(ir_file).exists()}")
-
+            
             result = subprocess.run(
-<<<<<<< HEAD
-                [CLANG_PATH, '-S', '-target', 'x86_64-unknown-linux-gnu',ir_file, '-o', asm_file],
-=======
-                [CLANG_PATH, '-S', ir_file, '-o', asm_file],
->>>>>>> 8658184119bfd78f3162d0ca933022bc6eb3cd47
+                [CLANG_PATH, '-S', '-target', 'x86_64-unknown-linux-gnu', ir_file, '-o', asm_file],
                 capture_output=True,
                 timeout=10,
                 text=True
             )
-
+            
             if debug:
                 print(f"   Return code: {result.returncode}")
                 print(f"   ASM exists after run: {Path(asm_file).exists()}")
-<<<<<<< HEAD
                 if result.stderr:
-                     print(f"   STDERR: {result.stderr[:500]}") 
-=======
->>>>>>> 8658184119bfd78f3162d0ca933022bc6eb3cd47
-
+                    print(f"   STDERR: {result.stderr[:500]}")
+            
             if Path(asm_file).exists():
                 with open(asm_file, 'r', encoding='utf-8') as f:
                     asm_content = f.read()
-
+                
                 if debug:
                     print(f"   ASM size: {len(asm_content)} bytes")
-
+                
                 os.unlink(ir_file)
                 os.unlink(asm_file)
                 return asm_content
@@ -121,7 +114,7 @@ class SingleParquetProcessor:
                 if Path(ir_file).exists():
                     os.unlink(ir_file)
                 return None
-
+                
         except Exception as e:
             if debug:
                 print(f"\n❌ Exception: {e}")
@@ -135,7 +128,7 @@ class SingleParquetProcessor:
         except:
             return len(text.split())
     
-    def process_single_file(self, row, file_id, debug_first_fail=True):
+    def process_single_file(self, row, file_id, debug_first_fail=False):
         """단일 파일 처리"""
         try:
             # 1. Bitcode → IR
@@ -202,6 +195,7 @@ class SingleParquetProcessor:
         """메인 실행"""
         print("=" * 70)
         print("단일 Parquet 파일 테스트")
+        print(f"Parquet 인덱스: {self.parquet_index}")
         print("=" * 70)
         
         # Clang/llvm-dis 체크
@@ -221,16 +215,21 @@ class SingleParquetProcessor:
             print("❌ llvm-dis를 찾을 수 없습니다!")
             return
         
-        # 첫 번째 blob 파일 찾기 (해시값으로 저장됨)
-        blob_files = [f for f in PARQUET_DIR.glob("*") if f.is_file() and not f.name.startswith('.')]
+        # Parquet 파일 찾기 (정렬된 순서)
+        blob_files = sorted([f for f in PARQUET_DIR.glob("*") if f.is_file() and not f.name.startswith('.')])
         
         if not blob_files:
             print("❌ blob 파일을 찾을 수 없습니다!")
             print(f"경로: {PARQUET_DIR}")
             return
         
+        if self.parquet_index >= len(blob_files):
+            print(f"❌ 인덱스 {self.parquet_index}는 범위를 벗어났습니다!")
+            print(f"   총 파일 수: {len(blob_files)}")
+            return
+        
         parquet_file = blob_files[self.parquet_index]
-        print(f"📥 Parquet 파일 로드: {parquet_file.name}")
+        print(f"📥 Parquet 파일 로드 (인덱스 {self.parquet_index}): {parquet_file.name}")
         print(f"   경로: {parquet_file}")
         
         # Parquet 파일 읽기
@@ -249,7 +248,7 @@ class SingleParquetProcessor:
         for idx, (_, row) in enumerate(df.iterrows()):
             self.stats['processed_files'] += 1
             
-            success = self.process_single_file(row, idx)
+            success = self.process_single_file(row, idx, debug_first_fail=(idx < 10))
             
             if success:
                 pbar.update(1)
@@ -293,5 +292,8 @@ class SingleParquetProcessor:
 
 
 if __name__ == "__main__":
-    processor = SingleParquetProcessor()
+    # 커맨드라인 인자로 parquet 인덱스 받기
+    parquet_index = int(sys.argv[1]) if len(sys.argv) > 1 else 0
+    
+    processor = SingleParquetProcessor(parquet_index=parquet_index)
     processor.run()
