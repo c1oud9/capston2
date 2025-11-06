@@ -1,6 +1,7 @@
 """
 ComPile 데이터셋의 단일 parquet 파일 테스트
 한 개 parquet 파일 → IR/Assembly/토큰 생성
+각 parquet은 별도 폴더에 저장 (덮어쓰기 방지)
 """
 
 import os
@@ -19,23 +20,23 @@ os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
 # 설정
 PARQUET_DIR = Path("/Volumes/My Passport for Mac/cache/huggingface/hub/datasets--llvm-ml--ComPile/blobs")
-OUTPUT_DIR = Path("./test_single_parquet_output")
 CLANG_PATH = "clang"
-
-# 출력 디렉토리 생성
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-IR_DIR = OUTPUT_DIR / "ir"
-ASM_DIR = OUTPUT_DIR / "asm"
-IR_DIR.mkdir(exist_ok=True)
-ASM_DIR.mkdir(exist_ok=True)
 
 
 class SingleParquetProcessor:
     def __init__(self, parquet_index=0):
-        self.ir_dir = IR_DIR
-        self.asm_dir = ASM_DIR
-        self.metadata_file = OUTPUT_DIR / "metadata.jsonl"
         self.parquet_index = parquet_index
+        
+        # 각 parquet별로 다른 폴더에 저장
+        self.base_dir = Path(f"./test_parquet_{parquet_index}")
+        self.base_dir.mkdir(parents=True, exist_ok=True)
+        
+        self.ir_dir = self.base_dir / "ir"
+        self.asm_dir = self.base_dir / "asm"
+        self.metadata_file = self.base_dir / "metadata.jsonl"
+        
+        self.ir_dir.mkdir(exist_ok=True)
+        self.asm_dir.mkdir(exist_ok=True)
         
         print("📦 StarCoder 토크나이저 로딩...")
         self.tokenizer = AutoTokenizer.from_pretrained("bigcode/starcoderbase-1b")
@@ -196,6 +197,7 @@ class SingleParquetProcessor:
         print("=" * 70)
         print("단일 Parquet 파일 테스트")
         print(f"Parquet 인덱스: {self.parquet_index}")
+        print(f"출력 폴더: {self.base_dir}")
         print("=" * 70)
         
         # Clang/llvm-dis 체크
@@ -285,7 +287,7 @@ class SingleParquetProcessor:
         for reason, count in self.stats['failed_reasons'].items():
             print(f"  {reason}: {count:,}")
         
-        print(f"\n출력 디렉토리:   {OUTPUT_DIR}")
+        print(f"\n출력 디렉토리:   {self.base_dir}")
         print(f"  - IR:          {self.ir_dir}")
         print(f"  - Assembly:    {self.asm_dir}")
         print(f"  - Metadata:    {self.metadata_file}")
