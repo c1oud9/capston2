@@ -11,6 +11,7 @@ import pandas as pd
 from pathlib import Path
 from transformers import AutoTokenizer
 from tqdm import tqdm
+import sys
 
 # 환경 설정
 os.environ['HF_HOME'] = '/Volumes/My Passport for Mac/cache/huggingface'
@@ -28,11 +29,14 @@ ASM_DIR = OUTPUT_DIR / "asm"
 IR_DIR.mkdir(exist_ok=True)
 ASM_DIR.mkdir(exist_ok=True)
 
+
 class SingleParquetProcessor:
     def __init__(self):
         self.ir_dir = IR_DIR
         self.asm_dir = ASM_DIR
         self.metadata_file = OUTPUT_DIR / "metadata.jsonl"
+
+        self.parquet_index = int(sys.argv[1]) if len(sys.argv) > 1 else 0
         
         print("📦 StarCoder 토크나이저 로딩...")
         self.tokenizer = AutoTokenizer.from_pretrained("bigcode/starcoderbase-1b")
@@ -67,53 +71,54 @@ class SingleParquetProcessor:
             return None
     
     def ir_to_assembly(self, ir_text, debug=False):
-  
         try:
             with tempfile.NamedTemporaryFile(mode='w', suffix='.ll', 
                                             delete=False, encoding='utf-8') as f:
-            f.write(ir_text)
-            ir_file = f.name
-        
-        asm_file = ir_file.replace('.ll', '.s')
-        
-        if debug:
-            print(f"\n🔍 Debug Info:")
-            print(f"   IR file: {ir_file}")
-            print(f"   ASM file: {asm_file}")
-            print(f"   IR exists: {Path(ir_file).exists()}")
-        
-        result = subprocess.run(
-            [CLANG_PATH, '-S', ir_file, '-o', asm_file],
-            capture_output=True,
-            timeout=10,
-            text=True
-        )
-        
-        if debug:
-            print(f"   Return code: {result.returncode}")
-            print(f"   ASM exists after run: {Path(asm_file).exists()}")
-        
-        if Path(asm_file).exists():
-            with open(asm_file, 'r', encoding='utf-8') as f:
-                asm_content = f.read()
-            
+                f.write(ir_text)
+                ir_file = f.name
+
+            asm_file = ir_file.replace('.ll', '.s')
+
             if debug:
-                print(f"   ASM size: {len(asm_content)} bytes")
-            
-            os.unlink(ir_file)
-            os.unlink(asm_file)
-            return asm_content
-        else:
+                print(f"\n🔍 Debug Info:")
+                print(f"   IR file: {ir_file}")
+                print(f"   ASM file: {asm_file}")
+                print(f"   IR exists: {Path(ir_file).exists()}")
+
+            result = subprocess.run(
+                [CLANG_PATH, '-S', '-target', 'x86_64-unknown-linux-gnu',ir_file, '-o', asm_file],
+                capture_output=True,
+                timeout=10,
+                text=True
+            )
+
             if debug:
-                print(f"   ❌ ASM file not found!")
-            if Path(ir_file).exists():
+                print(f"   Return code: {result.returncode}")
+                print(f"   ASM exists after run: {Path(asm_file).exists()}")
+                if result.stderr:
+                     print(f"   STDERR: {result.stderr[:500]}") 
+
+            if Path(asm_file).exists():
+                with open(asm_file, 'r', encoding='utf-8') as f:
+                    asm_content = f.read()
+
+                if debug:
+                    print(f"   ASM size: {len(asm_content)} bytes")
+
                 os.unlink(ir_file)
+                os.unlink(asm_file)
+                return asm_content
+            else:
+                if debug:
+                    print(f"   ❌ ASM file not found!")
+                if Path(ir_file).exists():
+                    os.unlink(ir_file)
+                return None
+
+        except Exception as e:
+            if debug:
+                print(f"\n❌ Exception: {e}")
             return None
-            
-    except Exception as e:
-        if debug:
-            print(f"\n❌ Exception: {e}")
-        return None
     
     def count_tokens(self, text):
         """토큰 수 계산"""
@@ -123,7 +128,7 @@ class SingleParquetProcessor:
         except:
             return len(text.split())
     
-    def process_single_file(self, row, file_id, debug_first_fail=False):
+    def process_single_file(self, row, file_id, debug_first_fail=True):
         """단일 파일 처리"""
         try:
             # 1. Bitcode → IR
@@ -217,7 +222,7 @@ class SingleParquetProcessor:
             print(f"경로: {PARQUET_DIR}")
             return
         
-        parquet_file = blob_files[0]
+        parquet_file = blob_files[self.parquet_index]
         print(f"📥 Parquet 파일 로드: {parquet_file.name}")
         print(f"   경로: {parquet_file}")
         
