@@ -67,53 +67,52 @@ class SingleParquetProcessor:
             return None
     
     def ir_to_assembly(self, ir_text, debug=False):
-  
         try:
             with tempfile.NamedTemporaryFile(mode='w', suffix='.ll', 
                                             delete=False, encoding='utf-8') as f:
-            f.write(ir_text)
-            ir_file = f.name
-        
-        asm_file = ir_file.replace('.ll', '.s')
-        
-        if debug:
-            print(f"\n🔍 Debug Info:")
-            print(f"   IR file: {ir_file}")
-            print(f"   ASM file: {asm_file}")
-            print(f"   IR exists: {Path(ir_file).exists()}")
-        
-        result = subprocess.run(
-            [CLANG_PATH, '-S', ir_file, '-o', asm_file],
-            capture_output=True,
-            timeout=10,
-            text=True
-        )
-        
-        if debug:
-            print(f"   Return code: {result.returncode}")
-            print(f"   ASM exists after run: {Path(asm_file).exists()}")
-        
-        if Path(asm_file).exists():
-            with open(asm_file, 'r', encoding='utf-8') as f:
-                asm_content = f.read()
-            
+                f.write(ir_text)
+                ir_file = f.name
+
+            asm_file = ir_file.replace('.ll', '.s')
+
             if debug:
-                print(f"   ASM size: {len(asm_content)} bytes")
-            
-            os.unlink(ir_file)
-            os.unlink(asm_file)
-            return asm_content
-        else:
+                print(f"\n🔍 Debug Info:")
+                print(f"   IR file: {ir_file}")
+                print(f"   ASM file: {asm_file}")
+                print(f"   IR exists: {Path(ir_file).exists()}")
+
+            result = subprocess.run(
+                [CLANG_PATH, '-S', ir_file, '-o', asm_file],
+                capture_output=True,
+                timeout=10,
+                text=True
+            )
+
             if debug:
-                print(f"   ❌ ASM file not found!")
-            if Path(ir_file).exists():
+                print(f"   Return code: {result.returncode}")
+                print(f"   ASM exists after run: {Path(asm_file).exists()}")
+
+            if Path(asm_file).exists():
+                with open(asm_file, 'r', encoding='utf-8') as f:
+                    asm_content = f.read()
+
+                if debug:
+                    print(f"   ASM size: {len(asm_content)} bytes")
+
                 os.unlink(ir_file)
+                os.unlink(asm_file)
+                return asm_content
+            else:
+                if debug:
+                    print(f"   ❌ ASM file not found!")
+                if Path(ir_file).exists():
+                    os.unlink(ir_file)
+                return None
+
+        except Exception as e:
+            if debug:
+                print(f"\n❌ Exception: {e}")
             return None
-            
-    except Exception as e:
-        if debug:
-            print(f"\n❌ Exception: {e}")
-        return None
     
     def count_tokens(self, text):
         """토큰 수 계산"""
