@@ -86,7 +86,11 @@ class SingleParquetProcessor:
                 print(f"   IR exists: {Path(ir_file).exists()}")
 
             result = subprocess.run(
+<<<<<<< HEAD
                 [CLANG_PATH, '-S', '-target', 'x86_64-unknown-linux-gnu',ir_file, '-o', asm_file],
+=======
+                [CLANG_PATH, '-S', ir_file, '-o', asm_file],
+>>>>>>> 8658184119bfd78f3162d0ca933022bc6eb3cd47
                 capture_output=True,
                 timeout=10,
                 text=True
@@ -95,8 +99,11 @@ class SingleParquetProcessor:
             if debug:
                 print(f"   Return code: {result.returncode}")
                 print(f"   ASM exists after run: {Path(asm_file).exists()}")
+<<<<<<< HEAD
                 if result.stderr:
                      print(f"   STDERR: {result.stderr[:500]}") 
+=======
+>>>>>>> 8658184119bfd78f3162d0ca933022bc6eb3cd47
 
             if Path(asm_file).exists():
                 with open(asm_file, 'r', encoding='utf-8') as f:
