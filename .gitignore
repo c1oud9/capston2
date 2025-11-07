@@ -11,4 +11,6 @@ test_parquet_4/
 
 test_parquet_5/
 
+.venv/
+
 .gitignore 
