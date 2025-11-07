@@ -13,4 +13,8 @@ test_parquet_5/
 
 .venv/
 
+test_parquet_0.tar
+
+capston1/
+
 .gitignore 
