@@ -20,7 +20,7 @@ os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
 # 설정
 PARQUET_DIR = Path("/Volumes/My Passport for Mac/cache/huggingface/hub/datasets--llvm-ml--ComPile/blobs")
-CLANG_PATH = "clang"
+CLANG_PATH = "/usr/local/opt/llvm/bin/clang"
 
 
 class SingleParquetProcessor:
