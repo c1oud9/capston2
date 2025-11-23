@@ -25,10 +25,31 @@ test_parquet_13/
 
 test_parquet_14/
 
+test_parquet_15/
+
+test_parquet_16/
+
+test_parquet_17/
+
+test_parquet_18/
+
+test_parquet_19/
+
+
+test_parquet_20/
+
 .venv/
+
+pretraining_data/
+
+pretraining_data.tar
 
 test_parquet_0.tar
 
 capston1/
 
 .gitignore 
+
+compile_log/
+
+test_parquet/
