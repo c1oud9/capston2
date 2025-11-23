@@ -11,6 +11,20 @@ test_parquet_4/
 
 test_parquet_5/
 
+test_parquet_6/
+
+test_parquet_7/
+
+test_parquet_8/
+test_parquet_9/
+test_parquet_10/
+test_parquet_11/
+test_parquet_12/
+
+test_parquet_13/
+
+test_parquet_14/
+
 .venv/
 
 test_parquet_0.tar
