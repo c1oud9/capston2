@@ -2,8 +2,6 @@ test_parquets/
 
 compile_logs/
 
-da
-
 .venv/
 
 pretraining_data/
@@ -14,7 +12,7 @@ test_parquet_0.tar
 
 capston1/
 
+dataset_splits/
+
 .gitignore 
 
-
-pretain_code
