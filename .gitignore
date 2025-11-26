@@ -1,42 +1,8 @@
-test_parquet_0/
+test_parquets/
 
+compile_logs/
 
-test_parquet_1/
-
-test_parquet_2/
-
-test_parquet_3/
-
-test_parquet_4/
-
-test_parquet_5/
-
-test_parquet_6/
-
-test_parquet_7/
-
-test_parquet_8/
-test_parquet_9/
-test_parquet_10/
-test_parquet_11/
-test_parquet_12/
-
-test_parquet_13/
-
-test_parquet_14/
-
-test_parquet_15/
-
-test_parquet_16/
-
-test_parquet_17/
-
-test_parquet_18/
-
-test_parquet_19/
-
-
-test_parquet_20/
+da
 
 .venv/
 
@@ -50,6 +16,5 @@ capston1/
 
 .gitignore 
 
-compile_log/
 
-test_parquet/
+pretain_code

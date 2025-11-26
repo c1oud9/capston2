@@ -1,0 +1,19 @@
+{
+  "pretraining": {
+    "ir_tokens": 4780331253,
+    "asm_tokens": 8445976701,
+    "total_tokens": 13226307954,
+    "samples": 5950
+  },
+  "compiler_emulation": {
+    "new_tokens": 13246385374,
+    "retention_tokens": 2091814824,
+    "total_tokens": 15338200198,
+    "samples": 3975
+  },
+  "evaluation": {
+    "total_tokens": 5587529370,
+    "samples": 992
+  },
+  "total_used": 34152037522
+}
