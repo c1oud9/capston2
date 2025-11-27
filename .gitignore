@@ -16,3 +16,24 @@ dataset_splits/
 
 .gitignore 
 
+CE/
+
+.DS_Store
+
+test_parquet_21/
+
+test_parquet_22/
+
+test_parquet_23/
+test_parquet_24/
+test_parquet_25/
+test_parquet_26/
+test_parquet_27/
+test_parquet_28/
+test_parquet_29/
+test_parquet_30/
+test_parquet_31/
+test_parquet_32/
+test_parquet_33/
+test_parquet_34/
+test_parquet_35/
